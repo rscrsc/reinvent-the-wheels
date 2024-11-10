@@ -3,6 +3,11 @@
 
 #include <string>
 
+class DataFetcherException : public std::runtime_error {
+public:
+	explicit DataFetcherException(const std::string& message) : std::runtime_error(message) {}
+};
+
 class DataFetcher
 {
 private:

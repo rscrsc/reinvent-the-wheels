@@ -4,6 +4,7 @@
 #include <curl/curl.h>
 #include <fstream>
 #include <fmt/core.h>
+#include <stdexcept>
 
 // For logging
 // TODO: use adv. logging libs when needed
@@ -35,11 +36,15 @@ std::string DataFetcher::downloadURL(const std::string& url){
 	
 	// Initialize cURL
 	CURL* curl = curl_easy_init();
-	if(curl) {
+	if(!curl) {
+		throw DataFetcherException("Failed to initialize cURL");
+	}
+	try {
 		std::ofstream file(outFileRelPath, std::ios::binary);
 		if (!file.is_open()) {
-			std::cerr << "Failed to open file for writing: " << outFileRelPath << std::endl;
-			exit(1);
+			throw DataFetcherException(
+			  fmt::format("Failed to open file for writing: {}", outFileRelPath)
+			);
 		}
 
 		// Set up the cURL options
@@ -51,19 +56,21 @@ std::string DataFetcher::downloadURL(const std::string& url){
 		// Perform the request
 		CURLcode res = curl_easy_perform(curl);
 
-		// Check for errors
 		if (res != CURLE_OK) {
-			std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+			throw DataFetcherException(
+			  fmt::format("curl_easy_perform() failed: {}", curl_easy_strerror(res))
+			);
 		}
 
-		// Clean up
 		file.close();
+	} catch(DataFetcherException& e) {
 		curl_easy_cleanup(curl);
-	} else {
-		std::cerr << "Failed to initialize cURL" << std::endl;
-		exit(1);
+		throw;
 	}
 
+	curl_easy_cleanup(curl);
+
 	LOG_INFO("[INFO] Downloaded data file `%s` at `%s`\n", outFilename.c_str(), DATA_DIR);
+
 	return outFilename;
 }
