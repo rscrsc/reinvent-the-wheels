@@ -1,21 +1,18 @@
-#ifndef HPP_DATAFETCHER
-#define HPP_DATAFETCHER
-
-#include<string>
-#include<curl/curl.h>
-#include<fstream>
-#include<fmt/core.h>
+#include "DataFetcher.hpp"
+#include <iostream>
+#include <string>
+#include <curl/curl.h>
+#include <fstream>
+#include <fmt/core.h>
 
 // For logging
 // TODO: use adv. logging libs when needed
 #define LOG_INFO printf
 
-namespace data_fetcher
-{
+constexpr char DataFetcher::DATA_DIR[];
 
-static constexpr char DATA_DIR[] = "../data";
-
-std::string inline getBasename(const std::string& url){
+inline
+std::string DataFetcher::getBasename(const std::string& url){
 	size_t lastSplashPos = url.find_last_of('/');
 	if(lastSplashPos != std::string::npos){
 		return url.substr(lastSplashPos + 1);
@@ -24,15 +21,14 @@ std::string inline getBasename(const std::string& url){
 	}
 }
 
-// Callback function to write data to a file
-size_t WriteCallback(void* contents, size_t size, size_t nmemb, 
-  std::ofstream* userp) {
+size_t DataFetcher::mWriteCallback(void* contents, size_t size, size_t nmemb, 
+  std::ofstream* userp){
     size_t totalSize = size * nmemb;
     userp->write(static_cast<char*>(contents), totalSize);
     return totalSize;
 }
 
-std::string inline download_url(const std::string& url){
+std::string DataFetcher::downloadURL(const std::string& url){
 	const std::string outFilename = getBasename(url);
 	const std::string outFileRelPath = 
 	  fmt::format("{}/{}", DATA_DIR, outFilename);
@@ -48,7 +44,7 @@ std::string inline download_url(const std::string& url){
 
 		// Set up the cURL options
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, mWriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &file);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L); // Fail on HTTP error
 
@@ -71,5 +67,3 @@ std::string inline download_url(const std::string& url){
 	LOG_INFO("[INFO] Downloaded data file `%s` at `%s`\n", outFilename.c_str(), DATA_DIR);
 	return outFilename;
 }
-}
-#endif
