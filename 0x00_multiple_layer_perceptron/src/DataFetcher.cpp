@@ -35,6 +35,10 @@ std::string DataFetcher::downloadURL(const std::string& url){
 	  fmt::format("{}/{}", DATA_DIR, outFilename);
 	
 	// Initialize cURL
+	CURLcode res = curl_global_init(CURL_GLOBAL_ALL);
+	if(res != 0) {
+		throw DataFetcherException("Failed to initialize cURL");
+	}
 	CURL* curl = curl_easy_init();
 	if(!curl) {
 		throw DataFetcherException("Failed to initialize cURL");
@@ -65,10 +69,12 @@ std::string DataFetcher::downloadURL(const std::string& url){
 		file.close();
 	} catch(DataFetcherException& e) {
 		curl_easy_cleanup(curl);
+		curl_global_cleanup();
 		throw;
 	}
 
 	curl_easy_cleanup(curl);
+	curl_global_cleanup();
 
 	LOG_INFO("[INFO] Downloaded data file `%s` at `%s`\n", outFilename.c_str(), DATA_DIR);
 
